@@ -67,33 +67,35 @@ bool ConvexHull::isCoplanar(const vect& ab, const vect& ac, const vect& ad){
 //FIXME: a tester
 void ConvexHull::initializeConflictsGraph()
 {
-    for(auto fIter = Clist.begin(); fIter != Clist.end(); ++fIter)
-    {
-        for(auto pIter = pointList.begin(); pIter != pointList.end(); ++pIter)
-        {
-            if ( faceIsVisible(&(*pIter), *fIter) )
-            {
-                Pconflit[*fIter].push_back(&(*pIter));
-                Fconflit[&(*pIter)].push_back(*fIter);
-            }
-        }
-    }
+    //for(auto fIter = Clist.begin(); fIter != Clist.end(); ++fIter)
+    //{
+    //    for(auto pIter = pointList.begin(); pIter != pointList.end(); ++pIter)
+    //    {
+    //        if ( faceIsVisible(&(*pIter), *fIter) )
+    //        {
+    //            Pconflit[*fIter].push_back(&(*pIter));
+    //            Fconflit[&(*pIter)].push_back(*fIter);
+    //        }
+    //    }
+    //}
 }
 
+
+//Works only if a pt is out of the hull
 bool ConvexHull::faceIsVisible(DCEL::Vertex* pt, DCEL::Region* r)
 {
-	vect pt2Centroid(*pt, centroid.getPoint());
-
 	DCEL::Vertex p1 = *(r->getBound()->getOrigin());
 	DCEL::Vertex p2 = *(r->getBound()->getEnd());
 	DCEL::Vertex p3 = *(r->getBound()->getNext()->getEnd());
+
+	vect pt2face(*pt, p1);
 
 	vect p12p2(p1, p2);
 	vect p22p3(p2, p3);
 	vect rNormal(p12p2.cross(p22p3));
 	
 	//If the normal is in the opposite direction of pt2centroid; 
-	if (pt2Centroid.dot(rNormal) < 0)
+	if (pt2face.dot(rNormal) < 0)
 	{
 		return true;
 	}
