@@ -69,9 +69,23 @@ void ConvexHull::initializeConflictsGraph()
 	//TODO... 
 }
 
-bool ConvexHull::faceIsVisible(DCEL::Vertex*, DCEL::Region*)
+bool ConvexHull::faceIsVisible(DCEL::Vertex* pt, DCEL::Region* r)
 {
-	//TODO...
+	vect pt2Centroid(*pt, centroid.getPoint());
+
+	DCEL::Vertex p1 = *(r->getBound()->getOrigin());
+	DCEL::Vertex p2 = *(r->getBound()->getEnd());
+	DCEL::Vertex p3 = *(r->getBound()->getNext()->getEnd());
+
+	vect p12p2(p1, p2);
+	vect p22p3(p2, p3);
+	vect rNormal(p12p2.cross(p22p3));
+	
+	//If the normal is in the opposite direction of pt2centroid; 
+	if (pt2Centroid.dot(rNormal) < 0)
+	{
+		return true;
+	}
 	return false;
 }
 
@@ -181,7 +195,7 @@ DCEL::Region* ConvexHull::createAFace(DCEL::Vertex* p1, DCEL::Vertex* p2, DCEL::
 
 
 std::vector<DCEL::Vertex*> ConvexHull::sortPointsCCw(DCEL::Vertex* p1, DCEL::Vertex* p2, DCEL::Vertex* p3)
-{
+{ 
 	std::vector<DCEL::Vertex*> sortedPoints; 
 
 	sortedPoints.push_back(p1);
@@ -254,6 +268,10 @@ void ConvexHull::computeConvexHull()
 				//STEP 2
 				//Compute the convexHull made by the 4 points( C <- CH(p1,p2,p3,p4))
 				createFirstTetraedron(&*aItt, &*bItt, &*cItt, &*dItt);
+				centroid.update(*aItt);
+				centroid.update(*bItt);
+				centroid.update(*cItt);
+				centroid.update(*dItt);
 
 				pointList.erase(dItt);
 				pointList.erase(cItt);
