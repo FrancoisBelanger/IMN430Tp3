@@ -252,7 +252,6 @@ void ConvexHull::computeConvexHull()
 			initializeConflictsGraph();
 
 			//STEP 5
-			//IF THE POINTS GET ERASED, R MUST BE STARTED AT 0 !!!!!!!!!!
 			for (int r = 0; r < pointList.size(); ++r)
 			{
 				if (Fconflit[&pointList[r]].size() > 0)
@@ -296,4 +295,9 @@ void ConvexHull::computeConvexHull()
 	}
 	else
 		cout << "Not enough points to create a convex hull, program is closing..." << endl;
+}
+
+void ConvexHull::display()
+{
+	//TODO : Using OPENGL and following the created DCEL...
 }
