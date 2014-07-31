@@ -329,4 +329,5 @@ void ConvexHull::computeConvexHull()
 void ConvexHull::display()
 {
 	//TODO : Using OPENGL and following the created DCEL...
+    
 }
