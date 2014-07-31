@@ -40,9 +40,11 @@ bool ConvexHull::loadFile(const char* filename)
 		pointList.clear();
 
 		std::ifstream ifs(filename, std::ifstream::in);
-
-		while (ifs.good() && !ifs.eof())
+		
+		int counter = 0; //limits the number of points considered
+		while (ifs.good() && !ifs.eof() && counter != NB_POINTS_LIMIT)
 		{
+			++counter;
 			DCEL::Vertex pt;
 			ifs >> pt;
 			pointList.push_back(pt);
@@ -69,6 +71,72 @@ bool ConvexHull::faceIsVisible(DCEL::Vertex*, DCEL::Region*)
 {
 	//TODO...
 	return false;
+}
+
+void ConvexHull::createFirstTetraedron(DCEL::Vertex* p1, DCEL::Vertex* p2, DCEL::Vertex* p3, DCEL::Vertex* p4)
+{	
+	//Creating region 1
+	//Get a counter-clockwise orientation
+	std::vector<DCEL::Vertex*> face1 = sortPointsCCw(p1, p2, p3);
+	
+	DCEL::HalfEdge* e12 = new DCEL::HalfEdge(face1[0]);
+	DCEL::HalfEdge* e21 = new DCEL::HalfEdge(face1[1]);
+	e12->setTwin(e21);
+
+	DCEL::HalfEdge* e23 = new DCEL::HalfEdge(face1[1]);
+	DCEL::HalfEdge* e32 = new DCEL::HalfEdge(face1[2]);
+	e23->setTwin(e32);
+
+	DCEL::HalfEdge* e31 = new DCEL::HalfEdge(face1[2]);
+	DCEL::HalfEdge* e13 = new DCEL::HalfEdge(face1[0]);
+	e31->setTwin(e13);
+
+	e12->setNext(e23);
+	e23->setNext(e31);
+	e31->setNext(e12); 
+
+	DCEL::Region* r1 = new DCEL::Region(e12);
+	
+	//Creating region 2
+	//Because we use twin edges from the first region which is counter clockwise
+	//we are sure reigion 2 will be oriented counter clockwise too. 
+
+	DCEL::Region* r2 = new DCEL::Region(e21);
+
+	DCEL::HalfEdge* e14 = new DCEL::HalfEdge(e21->getEnd());
+	DCEL::HalfEdge* e41 = new DCEL::HalfEdge(p4);
+	e14->setTwin(e41);
+
+	DCEL::HalfEdge* e42 = new DCEL::HalfEdge(p4);
+	DCEL::HalfEdge* e24 = new DCEL::HalfEdge(e21->getOrigin());
+	e42->setTwin(e24);
+
+	e21->setNext(e14);
+	e14->setNext(e42);
+	e24->setNext(e21);
+
+	//Creating region 3
+	DCEL::Region* r3 = new DCEL::Region(e32);
+
+	DCEL::HalfEdge* e43 = new DCEL::HalfEdge(p4);
+	DCEL::HalfEdge* e34 = new DCEL::HalfEdge(e32->getOrigin());
+
+	e32->setNext(e24);
+	e24->setNext(e43);
+	e43->setNext(e32);
+
+	//Creating region 4
+	DCEL::Region* r4 = new DCEL::Region(e13);
+
+	e13->setNext(e34);
+	e34->setNext(e41);
+	e41->setNext(e13);
+
+	//Including the created regions in Clist
+	Clist.push_back(r1);
+	Clist.push_back(r2);
+	Clist.push_back(r3);
+	Clist.push_back(r4);
 }
 
 
@@ -150,9 +218,9 @@ void ConvexHull::computeConvexHull()
 		if (Clist.size() < 4)
 		{
 			auto aItt = pointList.begin();
-			auto bItt = ++aItt;
-			auto cItt = ++bItt;
-			auto dItt = ++cItt;
+			auto bItt = aItt+1;
+			auto cItt = bItt+1;
+			auto dItt = cItt+1;
 
 			auto ab = vect(*aItt, *bItt);
 			auto ac = vect(*aItt, *cItt);
@@ -167,22 +235,17 @@ void ConvexHull::computeConvexHull()
 			{
 				//STEP 2
 				//Compute the convexHull made by the 4 points( C <- CH(p1,p2,p3,p4))
-				Clist.push_back(createAFace(&*aItt, &*bItt, &*cItt));
-				Clist.push_back(createAFace(&*aItt, &*bItt, &*dItt));
-				Clist.push_back(createAFace(&*aItt, &*cItt, &*dItt));
-				Clist.push_back(createAFace(&*bItt, &*cItt, &*dItt));
+				createFirstTetraedron(&*aItt, &*bItt, &*cItt, &*dItt);
 
-				//TO FIX .... !!!!!!!
-				//pointList.erase(aItt);
-				//pointList.erase(bItt);
-				//pointList.erase(cItt);
-				//pointList.erase(dItt);
+				pointList.erase(dItt);
+				pointList.erase(cItt);
+				pointList.erase(bItt);
+				pointList.erase(aItt);
 			}
 
 			//STEP 3
 			//Shuffle rests of the points
-			//TO put back as "std::random_shuffle(pointList.begin(), pointList.end()); once the fix at step 2 will be done !!!
-			std::random_shuffle(pointList.begin()+4, pointList.end());
+			std::random_shuffle(pointList.begin(), pointList.end());
 
 			//STEP 4
 			//Initalize the conflits Graph<aNpoint, aCface>
@@ -190,11 +253,11 @@ void ConvexHull::computeConvexHull()
 
 			//STEP 5
 			//IF THE POINTS GET ERASED, R MUST BE STARTED AT 0 !!!!!!!!!!
-			for (int r = 4; r < pointList.size(); ++r)
+			for (int r = 0; r < pointList.size(); ++r)
 			{
 				if (Fconflit[&pointList[r]].size() > 0)
 				{
-					//7. Add pr to C??? C contains faces...
+					//7. Add pr to C
 					//8. retirer les faces dans Fconflit(pr) de C
 
 					//9. Creer une liste ordonnee L formant l'horizon de pr
@@ -207,7 +270,7 @@ void ConvexHull::computeConvexHull()
 						DCEL::Region* regionF = createAFace(prHorizon[i]->getOrigin(), prHorizon[i]->getEnd(), &pointList[r]);
 						Clist.push_back(regionF);
 
-						//12. si f est complanaire avec la face voisine f^t le long de e,
+						//12. si f est coplanaire avec la face voisine f^t le long de e,
 							//13.combiner f et f^t en une seule face dont la liste des conflits est la meme que pour f^t
 
 						//14. sinon 
