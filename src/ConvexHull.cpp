@@ -64,9 +64,20 @@ bool ConvexHull::isCoplanar(const vect& ab, const vect& ac, const vect& ad){
 	return abs(ab.cross(ac).dot(ad)) > std::numeric_limits<double>::epsilon();
 }
 
+//FIXME: a tester
 void ConvexHull::initializeConflictsGraph()
 {
-	//TODO... 
+    for(auto fIter = Clist.begin(); fIter != Clist.end(); ++fIter)
+    {
+        for(auto pIter = pointList.begin(); pIter != pointList.end(); ++pIter)
+        {
+            if ( faceIsVisible(&(*pIter), *fIter) )
+            {
+                Pconflit[*fIter].push_back(&(*pIter));
+                Fconflit[&(*pIter)].push_back(*fIter);
+            }
+        }
+    }
 }
 
 bool ConvexHull::faceIsVisible(DCEL::Vertex*, DCEL::Region*)
@@ -176,7 +187,7 @@ DCEL::Region* ConvexHull::createAFace(DCEL::Vertex* p1, DCEL::Vertex* p2, DCEL::
 	}
 
 	//TO FINISH...
-	return &DCEL::Region(); 
+	return new DCEL::Region();
 }
 
 
