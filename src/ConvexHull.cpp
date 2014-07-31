@@ -90,7 +90,7 @@ DCEL::Region* ConvexHull::createAFace(DCEL::Vertex* p1, DCEL::Vertex* p2, DCEL::
 	}
 
 	//TO FINISH...
-	return new DCEL::Region();
+	return &DCEL::Region(); 
 }
 
 
