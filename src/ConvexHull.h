@@ -18,6 +18,7 @@ class ConvexHull
 	std::map<DCEL::Region*, std::vector<DCEL::Vertex*> > Pconflit; 
 
 	void initializeConflictsGraph(); 
+	void createFirstTetraedron(DCEL::Vertex* p1, DCEL::Vertex* p2, DCEL::Vertex* p3, DCEL::Vertex* p4);
 	bool faceIsVisible(DCEL::Vertex*, DCEL::Region*);
 	DCEL::Region* createAFace(DCEL::Vertex* p1, DCEL::Vertex* p2, DCEL::Vertex* p3);
 	std::vector<DCEL::Vertex*> sortPointsCCw(DCEL::Vertex* p1, DCEL::Vertex* p2, DCEL::Vertex* p3);
