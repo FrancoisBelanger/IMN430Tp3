@@ -24,6 +24,9 @@ public:
     vect(const Vertex& a, const Vertex& b)
         : Vertex(b.x - a.x, b.y - a.y, b.z - a.z){
     }
+    vect(const vect& v)
+        : Vertex(v){
+    }
 
     //---- Public methods
     vect cross(const vect& b)const{
@@ -36,6 +39,31 @@ public:
     
     int dot(const vect& v)const{
         return (this->x * v.x + this->y * v.y + this->z * v.z);
+    }
+    
+    unsigned int norm()const{
+        const int x2 = this->x * this->x;
+        const int y2 = this->y * this->y;
+        const int z2 = this->z * this->z;
+        
+        return sqrt(x2 + y2 + z2);
+    }
+    
+    vect& normalize(){
+        vect normal(getNormal());
+        this->swap(normal);
+        return *this;
+    }
+    
+    vect getNormal()const{
+        const unsigned int n = norm();
+        return vect(this->x / n, this->y / n, this->z / n);
+    }
+    
+    void swap(vect& v){
+        std::swap(x, v.x);
+        std::swap(y, v.y);
+        std::swap(z, v.z);
     }
 };
 
