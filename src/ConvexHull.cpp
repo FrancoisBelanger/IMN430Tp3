@@ -41,25 +41,27 @@ bool ConvexHull::loadFile(const char* filename)
 
 		std::ifstream ifs(filename, std::ifstream::in);
 		
-		int counter = 0; //limits the number of points considered
-		while (ifs.good() && !ifs.eof() && counter != NB_POINTS_LIMIT)
+		success = ifs.is_open(); 
+		if (success)
 		{
-			++counter;
-			DCEL::Vertex pt;
-			ifs >> pt;
-			pointList.push_back(pt);
+			int counter = 0; //limits the number of points considered
+			while (ifs.good() && !ifs.eof() && counter != NB_POINTS_LIMIT)
+			{
+				++counter;
+				DCEL::Vertex pt;
+				ifs >> pt;
+				pointList.push_back(pt);
+			}
+
+			ifs.close();
 		}
-
-		ifs.close();
-
-		success = true;
 	}
 
 	return success;
 }
 
 bool ConvexHull::isCoplanar(const vect& ab, const vect& ac, const vect& ad){
-	return abs(ab.cross(ac).dot(ad)) > 0;
+	return abs(ab.cross(ac).dot(ad)) > std::numeric_limits<double>::epsilon();
 }
 
 void ConvexHull::initializeConflictsGraph()
@@ -93,9 +95,13 @@ void ConvexHull::createFirstTetraedron(DCEL::Vertex* p1, DCEL::Vertex* p2, DCEL:
 
 	e12->setNext(e23);
 	e23->setNext(e31);
-	e31->setNext(e12); 
+	e31->setNext(e12);
 
 	DCEL::Region* r1 = new DCEL::Region(e12);
+
+	e12->setRegion(r1);
+	e23->setRegion(r1);
+	e31->setRegion(r1);
 	
 	//Creating region 2
 	//Because we use twin edges from the first region which is counter clockwise
@@ -113,7 +119,11 @@ void ConvexHull::createFirstTetraedron(DCEL::Vertex* p1, DCEL::Vertex* p2, DCEL:
 
 	e21->setNext(e14);
 	e14->setNext(e42);
-	e24->setNext(e21);
+	e42->setNext(e21);
+
+	e21->setRegion(r2);
+	e14->setRegion(r2);
+	e42->setRegion(r2);
 
 	//Creating region 3
 	DCEL::Region* r3 = new DCEL::Region(e32);
@@ -125,12 +135,20 @@ void ConvexHull::createFirstTetraedron(DCEL::Vertex* p1, DCEL::Vertex* p2, DCEL:
 	e24->setNext(e43);
 	e43->setNext(e32);
 
+	e32->setRegion(r3);
+	e24->setRegion(r3);
+	e43->setRegion(r3);
+
 	//Creating region 4
 	DCEL::Region* r4 = new DCEL::Region(e13);
 
 	e13->setNext(e34);
 	e34->setNext(e41);
 	e41->setNext(e13);
+
+	e13->setRegion(r4);
+	e34->setRegion(r4);
+	e41->setRegion(r4);
 
 	//Including the created regions in Clist
 	Clist.push_back(r1);
@@ -158,7 +176,7 @@ DCEL::Region* ConvexHull::createAFace(DCEL::Vertex* p1, DCEL::Vertex* p2, DCEL::
 	}
 
 	//TO FINISH...
-	return new DCEL::Region();
+	return &DCEL::Region(); 
 }
 
 
