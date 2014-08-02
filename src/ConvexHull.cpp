@@ -67,17 +67,17 @@ bool ConvexHull::isCoplanar(const vect& ab, const vect& ac, const vect& ad){
 //FIXME: a tester
 void ConvexHull::initializeConflictsGraph()
 {
-    //for(auto fIter = Clist.begin(); fIter != Clist.end(); ++fIter)
-    //{
-    //    for(auto pIter = pointList.begin(); pIter != pointList.end(); ++pIter)
-    //    {
-    //        if ( faceIsVisible(&(*pIter), *fIter) )
-    //        {
-    //            Pconflit[*fIter].push_back(&(*pIter));
-    //            Fconflit[&(*pIter)].push_back(*fIter);
-    //        }
-    //    }
-    //}
+    for(auto fIter = Clist.begin(); fIter != Clist.end(); ++fIter)
+    {
+        for(auto pIter = pointList.begin(); pIter != pointList.end(); ++pIter)
+        {
+            if ( faceIsVisible(&(*pIter), *fIter) )
+            {
+                Pconflit[*fIter].push_back(&(*pIter));
+                Fconflit[&(*pIter)].push_back(*fIter);
+            }
+        }
+    }
 }
 
 
