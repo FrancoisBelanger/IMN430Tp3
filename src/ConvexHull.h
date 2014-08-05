@@ -15,7 +15,7 @@ class ConvexHull
 	std::vector<DCEL::Vertex> convexHullPoints;
 	std::list<DCEL::Region*> Clist;
 
-    static const int NB_POINTS_LIMIT = 2000;
+    static const int NB_POINTS_LIMIT = 100;
 
     //OPTIMISATION: voir pour utiliser un set au lieu des list/vector
 	std::map<DCEL::Vertex*, std::list<DCEL::Region*> > Fconflit;
@@ -26,7 +26,7 @@ class ConvexHull
 	void createFirstTetraedron(DCEL::Vertex* p1, DCEL::Vertex* p2, DCEL::Vertex* p3, DCEL::Vertex* p4);
 
 	//Tool-Func
-    void testPointForFace(DCEL::Region* face, std::vector<DCEL::Vertex*>& List);
+    void testPointForFace(DCEL::Region* face, std::vector<DCEL::Vertex*>& List, int i = 0);
 	bool faceIsVisible(DCEL::Vertex*, DCEL::Region*);
     DCEL::Region* createAFace(DCEL::Vertex* p, DCEL::HalfEdge* e, DCEL::HalfEdge* ep2begin = nullptr, DCEL::HalfEdge* ep2end = nullptr);
 	void findHorizon(DCEL::Vertex* p, std::vector<DCEL::Edge*>& hList);

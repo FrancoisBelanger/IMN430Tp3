@@ -26,6 +26,14 @@
 
 
 using namespace std;
+GLfloat faceColor[18] = {
+    1, 0, 0,
+    0, 1, 0,
+    0, 0, 1,
+    1, 1, 0,
+    1, 0, 1,
+    0, 1, 1
+};
 
 //Camera Variables
 Camera gTheCam(0,0,20);
@@ -186,16 +194,22 @@ void DrawConvexHull()
 {
     auto f = convexHull.getFaceListIter();
 
+    int cpt = 0;
     glBegin(GL_TRIANGLES);
     for(; f != convexHull.getFaceListEnd(); ++f)
     {
-        glColor3f(rand()/float(RAND_MAX), rand()/float(RAND_MAX), rand()/float(RAND_MAX));
+        
+        glColor3f(faceColor[cpt],faceColor[cpt+1],faceColor[cpt+2]);
+//        glColor3f(rand()/(float)RAND_MAX, rand()/(float)RAND_MAX, rand()/(float)RAND_MAX);
+        
         DCEL::HalfEdge* edge = (*f)->getBound();
         glVertex3f(edge->getOrigin()->x, edge->getOrigin()->y, edge->getOrigin()->z);
         edge = edge->getNext();
         glVertex3f(edge->getOrigin()->x, edge->getOrigin()->y, edge->getOrigin()->z);
         edge = edge->getNext();
         glVertex3f(edge->getOrigin()->x, edge->getOrigin()->y, edge->getOrigin()->z);
+        
+        cpt = (cpt+3)%18;
     }
     glEnd();
 }
@@ -398,6 +412,7 @@ void keyboard( unsigned char key, int x, int y )
 
 int main(int argc, char **argv)
 {
+    srand (1);
     convexHull.computeConvexHull();
     
     glutInit(&argc, argv);

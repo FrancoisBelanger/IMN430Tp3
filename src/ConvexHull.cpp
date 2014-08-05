@@ -68,14 +68,14 @@ bool ConvexHull::isCoplanar(const vect& ab, const vect& ac, const vect& ad){
 	return abs(ab.cross(ac).dot(ad)) < std::numeric_limits<double>::epsilon();
 }
 
-void ConvexHull::testPointForFace(DCEL::Region* face, std::vector<DCEL::Vertex*>& pList)
+void ConvexHull::testPointForFace(DCEL::Region* face, std::vector<DCEL::Vertex*>& pList, int r)
 {
-    for(auto pIter = pList.begin(); pIter != pList.end(); ++pIter)
+    for(int i = r; i < pList.size(); ++i)
     {
-        if ( faceIsVisible(*pIter, face) )
+        if ( faceIsVisible(pList[i], face) )
         {
-            Pconflit[face].push_back(*pIter);
-            Fconflit[*pIter].push_back(face);
+            Pconflit[face].push_back(pList[i]);
+            Fconflit[pList[i]].push_back(face);
         }
     }
 }
@@ -268,16 +268,16 @@ DCEL::Region* ConvexHull::createAFace(DCEL::Vertex* p, DCEL::HalfEdge* e, DCEL::
 	DCEL::Region* regionF = new DCEL::Region(e);
 	e->setRegion(regionF);
     
-	DCEL::HalfEdge* eEnd2p = new DCEL::HalfEdge(e);
+	DCEL::HalfEdge* eEnd2p = new DCEL::HalfEdge(e->getEnd());
 	eEnd2p->setRegion(regionF);
     
 	if (ep2End == nullptr)
-		DCEL::HalfEdge* ep2End = new DCEL::HalfEdge(p);
+        ep2End = new DCEL::HalfEdge(p);
     
 	eEnd2p->setTwin(ep2End); //will be ep2begin of the next face of the polygon
     
 	if (ep2Begin == nullptr)
-		DCEL::HalfEdge* ep2Begin = new DCEL::HalfEdge(p);
+        ep2Begin = new DCEL::HalfEdge(p);
 	ep2Begin->setRegion(regionF);
     
 	e->setNext(eEnd2p);
@@ -289,45 +289,92 @@ DCEL::Region* ConvexHull::createAFace(DCEL::Vertex* p, DCEL::HalfEdge* e, DCEL::
 
 void ConvexHull::findHorizon(DCEL::Vertex* p, std::vector<DCEL::Edge*>& hList)
 {
-    DCEL::Edge* firstHorizon = nullptr;
-    std::list<DCEL::Region*> conflicts = Fconflit[p];
-    
-    for(auto face = conflicts.begin(); face != conflicts.end() && firstHorizon == nullptr; ++face)
-    {
-        DCEL::Edge* first = (*face)->getBound();
-        DCEL::Edge* bound = (*face)->getBound();
-        do
-        {
-            auto found = std::find(conflicts.begin(), conflicts.end(), bound->getTwin()->getRegion());
-            
-            if(found == conflicts.end())
-            {
-                firstHorizon = bound;
-                break;
-            }
-            
-            bound = bound->getNext();
-            
-        }while(first != bound);
-    }
-    
-    DCEL::Edge* nextHorn = firstHorizon;
-    
-    do
-    {
-        auto found = std::find(conflicts.begin(), conflicts.end(), nextHorn->getTwin()->getRegion());
+//    DCEL::Edge* firstHorizon = nullptr;
+//    std::list<DCEL::Region*> conflicts = Fconflit[p];
+//    
+//    for(auto face = conflicts.begin(); face != conflicts.end() && firstHorizon == nullptr; ++face)
+//    {
+//        DCEL::Edge* first = (*face)->getBound();
+//        DCEL::Edge* bound = (*face)->getBound();
+//        do
+//        {
+//            auto found = std::find(conflicts.begin(), conflicts.end(), bound->getTwin()->getRegion());
+//            
+//            if(found == conflicts.end())
+//            {
+//                firstHorizon = bound;
+//                break;
+//            }
+//            
+//            bound = bound->getNext();
+//            
+//        }while(first != bound);
+//    }
+//    
+//    DCEL::Edge* nextHorn = firstHorizon;
+//    
+//    do
+//    {
+//        auto found = std::find(conflicts.begin(), conflicts.end(), nextHorn->getTwin()->getRegion());
+//        
+//        if(found == conflicts.end())
+//        {
+//             hList.push_back(nextHorn);
+//            nextHorn = nextHorn->getNext();
+//        }
+//        else
+//        {
+//            nextHorn = nextHorn->getNext()->getTwin();
+//        }
+//        
+//    } while(nextHorn != firstHorizon);
+    std::vector<DCEL::Edge*> horizon;
+
+	for (auto i = Fconflit[p].begin(); i != Fconflit[p].end(); ++i)
+	{
+        DCEL::HalfEdge* firstEdge = (*i)->getBound();
+        DCEL::HalfEdge* treatenEdge = firstEdge->getNext();
         
-        if(found == conflicts.end())
-        {
-             hList.push_back(nextHorn);
-            nextHorn = nextHorn->getNext();
-        }
-        else
-        {
-            nextHorn = nextHorn->getNext()->getTwin();
-        }
+		bool backOnFirstEdge = false;
+		while (!backOnFirstEdge)
+		{
+			//If the treaten edge's twin points to an invisible face,
+			//the treaten edge is on the horizon line
+			if (std::find(Fconflit[p].begin(), Fconflit[p].end(), treatenEdge->getTwin()->getRegion()) == Fconflit[p].end())
+				horizon.push_back(treatenEdge);
+            
+			//If the treaten edge is the first one of the face,
+			//All the face's edges have been treated
+			if (treatenEdge == firstEdge)
+				backOnFirstEdge = true;
+            
+			treatenEdge = treatenEdge->getNext();
+		}
+	}
+    
+	//Organize horizon edges
+//	std::vector<DCEL::Edge*> organizedHorizon;
+//	organizedHorizon.push_back(horizon[0]);
+    hList.push_back(horizon[0]);
+    
+	while (hList.size() != horizon.size())
+	{
+		int initialSize = hList.size();
+		for (std::vector<DCEL::Edge*>::iterator it = horizon.begin(); it != horizon.end(); ++it)
+		{
+			if ((*it)->getOrigin() == hList.back()->getEnd())
+			{
+				hList.push_back(*it);
+				break;
+			}
+		}
         
-    } while(nextHorn != firstHorizon);
+		//if the vector hasn't increased, there's a discontinuity in the horizon line founded
+		//and everything is going to collapse, causing apocalypse in the algorithm :(
+		assert(hList.size() != initialSize);
+	}
+    
+//	return organizedHorizon;
 }
 
 void ConvexHull::computeConvexHull()
@@ -400,56 +447,92 @@ void ConvexHull::computeConvexHull()
 					{
 						//11. Relier e a pr en creant une face triangulaire f et l'ajouter a C
                         DCEL::Vertex* vertex = pointList[r];
-                        DCEL::Edge *e1, *t1;
-                        if(sharedEdge == nullptr)
-                        {
-                            createEdge(&e1, &t1, prHorizon[e]->getEnd(), vertex);
-                            sharedEdge = t1;
-                        }
+//                        DCEL::Edge *e1 = nullptr, *t1 = nullptr;
+//                        DCEL::Region* f = new DCEL::Region(prHorizon[e]);
+//
+//                        if(sharedEdge == nullptr)
+//                        {
+//                            createEdge(&e1, &t1, prHorizon[e]->getEnd(), vertex);
+//                            sharedEdge = t1;
+//                        }
+//                        
+//                        DCEL::Edge *e2 = nullptr, *t2 = nullptr;
+//                        
+//                        if(e==0)
+//                        {
+//                            createEdge(&e2, &t2, vertex, prHorizon[e]->getOrigin());
+//                            setPrevNext(prHorizon[e], e1, e2);
+//                            e1->setRegion(f);
+//                            e2->setRegion(f);
+//                        }
+//                        else if(e < prHorizon.size()-1)
+//                        {
+//                            createEdge(&e2, &t2, prHorizon[e]->getEnd(), vertex);
+//                            setPrevNext(prHorizon[e], e2, sharedEdge);
+//                            sharedEdge->setRegion(f);
+//                            e2->setRegion(f);
+//                            sharedEdge = t2;
+//                        }
+//                        else
+//                        {
+//                            setPrevNext(prHorizon[e], lastFaceSecondEdge, sharedEdge);
+//                            lastFaceSecondEdge->setRegion(f);
+//                            
+//                        }
+//                        
+//                        if(lastFaceSecondEdge == nullptr)
+//                        {
+//                            lastFaceSecondEdge = t2;
+//                        }
+//                        prHorizon[e]->setRegion(f);
+//                        Clist.push_back(f);
                         
-                        DCEL::Edge *e2, *t2;
-                        createEdge(&e2, &t2, vertex, prHorizon[e]->getOrigin());
-                        if(lastFaceSecondEdge == nullptr)
-                        {
-                            lastFaceSecondEdge = t2;
-                        }
+                        DCEL::Region* regionF = nullptr;
                         
-                        if(e==0)
-                        {
-                            setPrevNext(prHorizon[e], e1, e2);
-                        }
-                        else if(e < prHorizon.size()-1)
-                        {
-                            setPrevNext(prHorizon[e], e2, sharedEdge);
-                            sharedEdge = t2;
-                        }
+                        if (e == 0)
+                            regionF = createAFace(vertex, prHorizon[e]);
+                        else if (e == prHorizon.size()-1)
+                            regionF = createAFace(vertex, prHorizon[e], prHorizon[e - 1]->getNext()->getTwin(), prHorizon[0]->getPrev());
                         else
+                            regionF = createAFace(vertex, prHorizon[e], prHorizon[e - 1]->getNext()->getTwin());
+                        
+                        prHorizon[e]->setRegion(regionF);
+                        Clist.push_back(regionF);
+
+                        //19. Suprimer le sommet associe ˆ pr de G
+                        for(auto iterF = Fconflit[pointList[r]].begin(); iterF != Fconflit[pointList[r]].end(); ++iterF)
                         {
-                            setPrevNext(prHorizon[e], lastFaceSecondEdge, sharedEdge);
+                            for(auto iterP = Pconflit[*iterF].begin() ; iterP != Pconflit[*iterF].end(); ++iterP)
+                            {
+                                if(*iterP != pointList[r])
+                                {
+                                    Fconflit[*iterP].remove(*iterF);
+                                }
+                            }
+                            //delete (*iterF);
+                            //*iterF = nullptr;
                         }
-                            
                         
-                        //!!!!!!!!!!!!!!!!!!!!
-                        //FIXME: deleter les regions qui sont associer aux edges que l'on garde.
-                        //!!!!!!!!!!!!!!!!!!!!
-                        //DCEL::Region* toDelete = prHorizon[e]->getRegion();
-                        DCEL::Region* f = new DCEL::Region(prHorizon[e]);
-                        prHorizon[e]->setRegion(f);
-                        e1->setRegion(f);
-                        e2->setRegion(f);
-                        
-                        Clist.push_back(f);
+                        for (auto i = Fconflit[pointList[r]].begin(); i != Fconflit[pointList[r]].end(); ++i)
+                        {
+                            delete (*i);
+                            *i = nullptr;
+                        }
+                        Fconflit[pointList[r]].clear();
+                        Fconflit.erase(pointList[r]);
                         
                         //12. si f est coplanaire avec la face voisine f' le long de e alors
-                        if(isCoplanar(vect(*prHorizon[e]->getOrigin(), *pointList[r]), vect(*prHorizon[e]->getOrigin(), *prHorizon[e]->getEnd()), vect(*prHorizon[e]->getOrigin(), *prHorizon[e]->getTwin()->getNext()->getOrigin())))
-                        {
-                            //TODO: fusionner le shit
-                        }
-                        else //14.
-                        {
-                            //TODO: optimize like the algo in the slides.
-                            testPointForFace(f, pointList);
-                        }
+//                        if(isCoplanar(vect(*prHorizon[e]->getOrigin(), *pointList[r]), vect(*prHorizon[e]->getOrigin(), *prHorizon[e]->getEnd()), vect(*prHorizon[e]->getOrigin(), *prHorizon[e]->getTwin()->getNext()->getOrigin())))
+//                        {
+//                            //TODO: fusionner le shit
+//                        }
+//                        else //14.
+//                        {
+//                            //TODO: optimize like the algo in the slides.
+//                            testPointForFace(f, pointList, r+1);
+                            testPointForFace(regionF, pointList, r+1);
+//                        }
+                        
                     }
 //                        //11. Relier e a pr en creant une face triangulaire f et l'ajouter a C
 //						DCEL::Region* regionF = nullptr;
